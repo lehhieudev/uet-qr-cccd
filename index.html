@@ -8,26 +8,30 @@
     body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; text-align: center; }
     h1 { color: #1a73e8; }
     #reader { width: 100%; max-width: 420px; margin: 15px auto; border: 4px solid #1a73e8; border-radius: 12px; overflow: hidden; background: #000; min-height: 300px; }
-    button { padding: 14px 24px; font-size: 17px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; width: 90%; max-width: 320px; }
+    button, select { padding: 14px 24px; font-size: 17px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; width: 90%; max-width: 320px; }
     .camera-btn { background: #ea4335; color: white; }
     .upload-btn { background: #1a73e8; color: white; }
     .lens-btn { background: #4285f4; color: white; }
     .paste-btn { background: #34a853; color: white; }
     .stop-btn { background: #fbbc05; color: black; display: none; }
     .save-btn { background: #34a853; color: white; display: none; }
+    .reset-btn { background: #1a73e8; color: white; font-size: 18px; padding: 16px 32px; margin-top: 20px; }
     .result { margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; text-align: left; display: none; }
     table { width: 100%; border-collapse: collapse; }
     td { padding: 10px 8px; border-bottom: 1px solid #eee; }
     .label { font-weight: 600; color: #333; width: 140px; }
     #status { margin: 15px 0; color: #d93025; font-weight: bold; min-height: 70px; line-height: 1.4; }
+    #cameraSelect { background: white; color: #333; border: 2px solid #1a73e8; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
   <h1>📱 Quét QR Căn cước công dân</h1>
-  <p>Web miễn phí trên GitHub Pages • Camera hoạt động tốt hơn</p>
+  <p>Web miễn phí trên GitHub Pages • Chọn camera linh hoạt</p>
 
   <div id="reader"></div>
+
+  <select id="cameraSelect"></select>
 
   <button class="camera-btn" id="cameraBtn">📹 Bắt đầu quét bằng Camera</button>
   <button class="stop-btn" id="stopBtn">⏹ Dừng Camera</button>
@@ -49,10 +53,27 @@
     let html5QrCode = null;
     let currentInfo = null;
     const statusEl = document.getElementById('status');
-    
-    // <<< THAY ĐỔI DÒNG NÀY >>>
     const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyuz827ypxj95F8-F6NNGbR_8F_ZuzIvhsuhQ-48eqxxGKi9ebdjiknuLgn1e0RkR9a/exec";  
-    // Thay YOUR_WEB_APP_URL bằng URL backend bạn copy ở Phần 1
+    // ← Thay YOUR_WEB_APP_URL bằng URL backend của bạn
+
+    // ==================== CHỌN CAMERA ====================
+    async function loadCameras() {
+      const select = document.getElementById('cameraSelect');
+      select.innerHTML = '<option value="">Đang tải danh sách camera...</option>';
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        select.innerHTML = '';
+        cameras.forEach((camera, index) => {
+          const option = document.createElement('option');
+          option.value = camera.id;
+          option.textContent = camera.label || (camera.facingMode === 'environment' ? '📸 Camera sau' : '📸 Camera trước');
+          select.appendChild(option);
+        });
+        if (cameras.length === 0) select.innerHTML = '<option value="">Không tìm thấy camera</option>';
+      } catch (err) {
+        select.innerHTML = '<option value="">Không thể lấy danh sách camera</option>';
+      }
+    }
 
     // Camera
     document.getElementById('cameraBtn').addEventListener('click', startCamera);
@@ -60,17 +81,22 @@
 
     async function startCamera() {
       statusEl.textContent = 'Đang mở camera...';
+      const selectedId = document.getElementById('cameraSelect').value;
+      if (!selectedId) {
+        statusEl.textContent = '⚠️ Vui lòng chọn camera trước!';
+        return;
+      }
       if (html5QrCode) await stopCamera();
+
       html5QrCode = new Html5Qrcode("reader");
       try {
-        const cameras = await Html5Qrcode.getCameras();
-        const cameraId = cameras.length > 0 ? cameras[cameras.length - 1].id : undefined;
-        await html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 260, height: 260 } }, onScanSuccess, () => {});
+        await html5QrCode.start(selectedId, { fps: 10, qrbox: { width: 260, height: 260 } }, onScanSuccess, () => {});
         document.getElementById('cameraBtn').style.display = 'none';
         document.getElementById('stopBtn').style.display = 'inline-block';
         statusEl.textContent = 'Camera đang chạy. Đặt thẻ CCCD vào khung.';
       } catch (err) {
-        statusEl.textContent = '❌ Không mở được camera. Hãy dùng chọn ảnh hoặc Google Lens.';
+        console.error(err);
+        statusEl.textContent = '❌ Không mở được camera. Hãy thử chọn camera khác hoặc dùng chọn ảnh.';
       }
     }
 
@@ -89,7 +115,7 @@
       processQR(decodedText);
     }
 
-    // Chọn ảnh
+    // Chọn ảnh (giữ nguyên)
     document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput').addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -104,21 +130,15 @@
       }
     });
 
-    // Google Lens hướng dẫn
+    // Google Lens & Dán & Xử lý
     function openGoogleLens() {
-      statusEl.innerHTML = `🔍 <strong>Hướng dẫn:</strong><br>
-      1. Mở app Google trên iPhone<br>
-      2. Nhấn Lens → quét QR trên thẻ CCCD<br>
-      3. Copy chuỗi text<br>
-      4. Nhấn nút "Dán & Xử lý QR" bên dưới`;
+      statusEl.innerHTML = `🔍 <strong>Hướng dẫn Google Lens:</strong><br>1. Mở app Google<br>2. Nhấn Lens → quét QR<br>3. Copy chuỗi text<br>4. Nhấn "Dán & Xử lý QR"`;
     }
 
-    // Dán & Xử lý
     async function pasteAndProcess() {
       statusEl.textContent = '⏳ Đang dán từ clipboard...';
       try {
         const text = await navigator.clipboard.readText();
-        if (!text) throw new Error();
         processQR(text.trim());
       } catch (err) {
         statusEl.textContent = '⚠️ Không đọc được clipboard. Copy từ Google Lens rồi nhấn lại.';
@@ -150,29 +170,54 @@
       statusEl.innerHTML = '<span style="color:#34a853">✅ Đã xử lý thành công!</span>';
     }
 
-    // Lưu vào Sheet
+    // ==================== LƯU VÀO GOOGLE SHEET (đã sửa lỗi) ====================
     document.getElementById('saveBtn').addEventListener('click', async () => {
       if (!currentInfo) return;
-      statusEl.textContent = '⏳ Đang lưu...';
+      statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
+
+      console.log("Đang gửi dữ liệu:", currentInfo);   // Debug
+
       try {
         const res = await fetch(BACKEND_URL, {
           method: 'POST',
           body: JSON.stringify(currentInfo),
           headers: { 'Content-Type': 'application/json' }
         });
+
+        console.log("Response status:", res.status);
         const result = await res.json();
+        console.log("Response data:", result);
+
         if (result.status === "success") {
-          statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu vào Google Sheet!</span>';
-          setTimeout(() => {
-            document.getElementById('result').style.display = 'none';
-            document.getElementById('saveBtn').style.display = 'none';
-            currentInfo = null;
-          }, 2500);
+          statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
+          showResetButton();
+        } else {
+          statusEl.textContent = '❌ Lỗi từ backend: ' + (result.message || 'Unknown');
         }
       } catch (err) {
-        statusEl.textContent = '❌ Lỗi kết nối. Kiểm tra BACKEND_URL.';
+        console.error("Lỗi fetch:", err);
+        statusEl.innerHTML = `❌ Không kết nối được backend.<br>Kiểm tra lại BACKEND_URL trong code.`;
       }
     });
+
+    // ==================== NÚT QUAY VỀ TRANG BAN ĐẦU ====================
+    function showResetButton() {
+      const resetHTML = `<button class="reset-btn" onclick="resetPage()">🔄 Quét lần tiếp theo</button>`;
+      const status = document.getElementById('status');
+      status.innerHTML += resetHTML;
+    }
+
+    function resetPage() {
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('saveBtn').style.display = 'none';
+      currentInfo = null;
+      statusEl.textContent = 'Trang đã sẵn sàng quét lần mới!';
+      // Tải lại danh sách camera
+      loadCameras();
+    }
+
+    // Tải danh sách camera khi mở trang
+    window.onload = loadCameras;
   </script>
 </body>
 </html>
