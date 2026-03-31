@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quét QR CCCD</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; text-align: center; }
+    h1 { color: #1a73e8; }
+    #reader { width: 100%; max-width: 420px; margin: 15px auto; border: 4px solid #1a73e8; border-radius: 12px; overflow: hidden; background: #000; min-height: 300px; }
+    button { padding: 14px 24px; font-size: 17px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; width: 90%; max-width: 320px; }
+    .camera-btn { background: #ea4335; color: white; }
+    .upload-btn { background: #1a73e8; color: white; }
+    .lens-btn { background: #4285f4; color: white; }
+    .paste-btn { background: #34a853; color: white; }
+    .stop-btn { background: #fbbc05; color: black; display: none; }
+    .save-btn { background: #34a853; color: white; display: none; }
+    .result { margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; text-align: left; display: none; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 10px 8px; border-bottom: 1px solid #eee; }
+    .label { font-weight: 600; color: #333; width: 140px; }
+    #status { margin: 15px 0; color: #d93025; font-weight: bold; min-height: 70px; line-height: 1.4; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <h1>📱 Quét QR Căn cước công dân</h1>
+  <p>Web miễn phí trên GitHub Pages • Camera hoạt động tốt hơn</p>
+
+  <div id="reader"></div>
+
+  <button class="camera-btn" id="cameraBtn">📹 Bắt đầu quét bằng Camera</button>
+  <button class="stop-btn" id="stopBtn">⏹ Dừng Camera</button>
+  <button class="upload-btn" id="uploadBtn">📤 Chọn ảnh QR từ máy</button>
+  <button class="lens-btn" onclick="openGoogleLens()">🔍 Dùng Google Lens quét QR</button>
+  <button class="paste-btn" onclick="pasteAndProcess()">📋 Dán & Xử lý QR</button>
+
+  <div id="result" class="result">
+    <h3>✅ Thông tin CCCD</h3>
+    <table id="infoTable"></table>
+    <button class="save-btn" id="saveBtn">💾 Lưu vào Google Sheet</button>
+  </div>
+
+  <div id="status"></div>
+
+  <input type="file" id="fileInput" accept="image/*" style="display:none;">
+
+  <script>
+    let html5QrCode = null;
+    let currentInfo = null;
+    const statusEl = document.getElementById('status');
+    
+    // <<< THAY ĐỔI DÒNG NÀY >>>
+    const BACKEND_URL = "https://script.google.com/macros/s/YOUR_WEB_APP_URL/exec";  
+    // Thay YOUR_WEB_APP_URL bằng URL backend bạn copy ở Phần 1
+
+    // Camera
+    document.getElementById('cameraBtn').addEventListener('click', startCamera);
+    document.getElementById('stopBtn').addEventListener('click', stopCamera);
+
+    async function startCamera() {
+      statusEl.textContent = 'Đang mở camera...';
+      if (html5QrCode) await stopCamera();
+      html5QrCode = new Html5Qrcode("reader");
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        const cameraId = cameras.length > 0 ? cameras[cameras.length - 1].id : undefined;
+        await html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 260, height: 260 } }, onScanSuccess, () => {});
+        document.getElementById('cameraBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'inline-block';
+        statusEl.textContent = 'Camera đang chạy. Đặt thẻ CCCD vào khung.';
+      } catch (err) {
+        statusEl.textContent = '❌ Không mở được camera. Hãy dùng chọn ảnh hoặc Google Lens.';
+      }
+    }
+
+    function stopCamera() {
+      if (html5QrCode) {
+        html5QrCode.stop().catch(() => {});
+        html5QrCode.clear();
+        html5QrCode = null;
+      }
+      document.getElementById('cameraBtn').style.display = 'inline-block';
+      document.getElementById('stopBtn').style.display = 'none';
+    }
+
+    function onScanSuccess(decodedText) {
+      stopCamera();
+      processQR(decodedText);
+    }
+
+    // Chọn ảnh
+    document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      statusEl.textContent = '⏳ Đang quét ảnh...';
+      const qr = new Html5Qrcode("reader");
+      try {
+        const decodedText = await qr.scanFile(file, true);
+        processQR(decodedText);
+      } catch (err) {
+        statusEl.textContent = '❌ Không đọc được QR từ ảnh. Hãy chụp rõ nét hơn.';
+      }
+    });
+
+    // Google Lens hướng dẫn
+    function openGoogleLens() {
+      statusEl.innerHTML = `🔍 <strong>Hướng dẫn:</strong><br>
+      1. Mở app Google trên iPhone<br>
+      2. Nhấn Lens → quét QR trên thẻ CCCD<br>
+      3. Copy chuỗi text<br>
+      4. Nhấn nút "Dán & Xử lý QR" bên dưới`;
+    }
+
+    // Dán & Xử lý
+    async function pasteAndProcess() {
+      statusEl.textContent = '⏳ Đang dán từ clipboard...';
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) throw new Error();
+        processQR(text.trim());
+      } catch (err) {
+        statusEl.textContent = '⚠️ Không đọc được clipboard. Copy từ Google Lens rồi nhấn lại.';
+      }
+    }
+
+    function processQR(decodedText) {
+      const fields = decodedText.trim().split('|').map(s => s.trim());
+      currentInfo = {
+        cccd: fields[0] || '',
+        hoTen: fields[2] || '',
+        ngaySinh: fields[3] || '',
+        gioiTinh: fields[4] || '',
+        diaChi: fields[5] || '',
+        ngayCap: fields[6] || ''
+      };
+
+      document.getElementById('infoTable').innerHTML = `
+        <tr><td class="label">Số CCCD</td><td>${currentInfo.cccd}</td></tr>
+        <tr><td class="label">Họ và tên</td><td>${currentInfo.hoTen}</td></tr>
+        <tr><td class="label">Ngày sinh</td><td>${currentInfo.ngaySinh}</td></tr>
+        <tr><td class="label">Giới tính</td><td>${currentInfo.gioiTinh}</td></tr>
+        <tr><td class="label">Địa chỉ</td><td>${currentInfo.diaChi}</td></tr>
+        <tr><td class="label">Ngày cấp</td><td>${currentInfo.ngayCap}</td></tr>
+      `;
+
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('saveBtn').style.display = 'block';
+      statusEl.innerHTML = '<span style="color:#34a853">✅ Đã xử lý thành công!</span>';
+    }
+
+    // Lưu vào Sheet
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      if (!currentInfo) return;
+      statusEl.textContent = '⏳ Đang lưu...';
+      try {
+        const res = await fetch(BACKEND_URL, {
+          method: 'POST',
+          body: JSON.stringify(currentInfo),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu vào Google Sheet!</span>';
+          setTimeout(() => {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+            currentInfo = null;
+          }, 2500);
+        }
+      } catch (err) {
+        statusEl.textContent = '❌ Lỗi kết nối. Kiểm tra BACKEND_URL.';
+      }
+    });
+  </script>
+</body>
+</html>
