@@ -170,36 +170,35 @@
       statusEl.innerHTML = '<span style="color:#34a853">✅ Đã xử lý thành công!</span>';
     }
 
-    // ==================== LƯU VÀO GOOGLE SHEET (đã sửa lỗi) ====================
+    // ==================== LƯU VÀO GOOGLE SHEET ====================
     document.getElementById('saveBtn').addEventListener('click', async () => {
-      if (!currentInfo) return;
-      statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
+    if (!currentInfo) return;
+    statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
 
-      console.log("Đang gửi dữ liệu:", currentInfo);   // Debug
-
-      try {
+    try {
         const res = await fetch(BACKEND_URL, {
-          method: 'POST',
-          body: JSON.stringify(currentInfo),
-          headers: { 'Content-Type': 'application/json' }
+        method: 'POST',
+        body: JSON.stringify(currentInfo),
+        headers: { 
+            'Content-Type': 'text/plain;charset=utf-8'   // ← Dòng này rất quan trọng
+        }
         });
 
-        console.log("Response status:", res.status);
         const result = await res.json();
-        console.log("Response data:", result);
 
         if (result.status === "success") {
-          statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
-          showResetButton();
+        statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
+        showResetButton();   // Hiện nút "Quét lần tiếp theo"
         } else {
-          statusEl.textContent = '❌ Lỗi từ backend: ' + (result.message || 'Unknown');
+        statusEl.textContent = '❌ Backend trả về lỗi: ' + (result.message || 'Unknown');
         }
-      } catch (err) {
+    } catch (err) {
         console.error("Lỗi fetch:", err);
-        statusEl.innerHTML = `❌ Không kết nối được backend.<br>Kiểm tra lại BACKEND_URL trong code.`;
-      }
+        statusEl.innerHTML = `❌ Không kết nối được backend.<br>
+        1. Kiểm tra lại BACKEND_URL<br>
+        2. Đảm bảo đã Deploy lại backend với doOptions`;
+    }
     });
-
     // ==================== NÚT QUAY VỀ TRANG BAN ĐẦU ====================
     function showResetButton() {
       const resetHTML = `<button class="reset-btn" onclick="resetPage()">🔄 Quét lần tiếp theo</button>`;
