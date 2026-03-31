@@ -171,34 +171,39 @@
     }
 
     // ==================== LƯU VÀO GOOGLE SHEET ====================
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-    if (!currentInfo) return;
-    statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
+ // ==================== LƯU VÀO GOOGLE SHEET (ĐÃ SỬA CORS) ====================
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  if (!currentInfo) return;
+  statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
 
-    try {
-        const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(currentInfo),
-        headers: { 
-            'Content-Type': 'text/plain;charset=utf-8'   // ← Dòng này rất quan trọng
-        }
-        });
-
-        const result = await res.json();
-
-        if (result.status === "success") {
-        statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
-        showResetButton();   // Hiện nút "Quét lần tiếp theo"
-        } else {
-        statusEl.textContent = '❌ Backend trả về lỗi: ' + (result.message || 'Unknown');
-        }
-    } catch (err) {
-        console.error("Lỗi fetch:", err);
-        statusEl.innerHTML = `❌ Không kết nối được backend.<br>
-        1. Kiểm tra lại BACKEND_URL<br>
-        2. Đảm bảo đã Deploy lại backend với doOptions`;
-    }
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify(currentInfo),
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'   // ← Dòng này rất quan trọng để bypass preflight
+      }
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
+      showResetButton();
+    } else {
+      statusEl.textContent = '❌ Backend trả lỗi: ' + (result.message || 'Unknown error');
+    }
+  } catch (err) {
+    console.error("Lỗi fetch:", err);
+    statusEl.innerHTML = `❌ Không kết nối được với Google Sheet.<br>
+      <small>1. Đảm bảo đã Deploy lại backend với code mới<br>
+      2. Kiểm tra BACKEND_URL có đúng không</small>`;
+  }
+});
     // ==================== NÚT QUAY VỀ TRANG BAN ĐẦU ====================
     function showResetButton() {
       const resetHTML = `<button class="reset-btn" onclick="resetPage()">🔄 Quét lần tiếp theo</button>`;
