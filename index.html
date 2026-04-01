@@ -171,8 +171,46 @@
     }
 
     // ==================== LƯU VÀO GOOGLE SHEET ====================
- // ==================== LƯU VÀO GOOGLE SHEET (ĐÃ SỬA CORS) ====================
+// LƯU VÀO GOOGLE SHEET
 document.getElementById('saveBtn').addEventListener('click', async () => {
+  if (!currentInfo) return;
+  
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
+
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify(currentInfo),
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'   // Quan trọng để tránh preflight
+      }
+    });
+
+    // Đọc response dù có lỗi HTTP
+    let result;
+    try {
+      result = await response.json();
+    } catch (e) {
+      result = { status: "unknown" };
+    }
+
+    if (response.ok && result.status === "success") {
+      statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
+      showResetButton();
+    } else {
+      statusEl.innerHTML = `⚠️ Dữ liệu đã lưu nhưng web báo lỗi.<br>
+        <small>Backend trả về: ${result.status || 'OK'}</small>`;
+      showResetButton();   // Vẫn cho phép quét tiếp
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    statusEl.innerHTML = `❌ Có lỗi kết nối.<br>
+      <small>Nhưng dữ liệu có thể đã được lưu.<br>
+      Kiểm tra Google Sheet của bạn.</small>`;
+    showResetButton();
+  }
+});
   if (!currentInfo) return;
   statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
 
