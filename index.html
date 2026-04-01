@@ -5,38 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Quét QR CCCD</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; text-align: center; }
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #f8f9fa; 
+      margin: 0; 
+      padding: 15px; 
+      text-align: center; 
+    }
     h1 { color: #1a73e8; }
-    #reader { width: 100%; max-width: 420px; margin: 15px auto; border: 4px solid #1a73e8; border-radius: 12px; overflow: hidden; background: #000; min-height: 300px; }
-    button, select { padding: 14px 24px; font-size: 17px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; width: 90%; max-width: 320px; }
+    #reader { 
+      width: 100%; 
+      max-width: 420px; 
+      margin: 15px auto; 
+      border: 4px solid #1a73e8; 
+      border-radius: 12px; 
+      overflow: hidden; 
+      background: #000; 
+      min-height: 300px; 
+    }
+    button, select { 
+      padding: 14px 24px; 
+      font-size: 17px; 
+      margin: 8px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      width: 90%; 
+      max-width: 320px; 
+    }
     .camera-btn { background: #ea4335; color: white; }
     .upload-btn { background: #1a73e8; color: white; }
     .lens-btn { background: #4285f4; color: white; }
     .paste-btn { background: #34a853; color: white; }
     .stop-btn { background: #fbbc05; color: black; display: none; }
     .save-btn { background: #34a853; color: white; display: none; }
-    .reset-btn { background: #1a73e8; color: white; font-size: 18px; padding: 16px 32px; margin-top: 20px; }
-    .result { margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; text-align: left; display: none; }
+    .reset-btn { 
+      background: #1a73e8; 
+      color: white; 
+      font-size: 18px; 
+      padding: 16px 32px; 
+      margin-top: 20px; 
+    }
+    .result { 
+      margin: 20px auto; 
+      padding: 20px; 
+      background: white; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+      max-width: 500px; 
+      text-align: left; 
+      display: none; 
+    }
     table { width: 100%; border-collapse: collapse; }
     td { padding: 10px 8px; border-bottom: 1px solid #eee; }
     .label { font-weight: 600; color: #333; width: 140px; }
-    #status { margin: 15px 0; color: #d93025; font-weight: bold; min-height: 70px; line-height: 1.4; }
-    #cameraSelect { background: white; color: #333; border: 2px solid #1a73e8; }
+    #status { 
+      margin: 15px 0; 
+      color: #d93025; 
+      font-weight: bold; 
+      min-height: 80px; 
+      line-height: 1.4; 
+    }
+    #cameraSelect { 
+      background: white; 
+      color: #333; 
+      border: 2px solid #1a73e8; 
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
   <h1>📱 Quét QR Căn cước công dân</h1>
-  <p>Web miễn phí trên GitHub Pages • Chọn camera linh hoạt</p>
+  <p>Web miễn phí trên GitHub Pages</p>
 
   <div id="reader"></div>
 
-  <select id="cameraSelect"></select>
+  <select id="cameraSelect"></select><br>
 
-  <button class="camera-btn" id="cameraBtn">📹 Bắt đầu quét bằng Camera</button>
+  <button class="camera-btn" id="cameraBtn">📹 Bắt đầu quét Camera</button>
   <button class="stop-btn" id="stopBtn">⏹ Dừng Camera</button>
   <button class="upload-btn" id="uploadBtn">📤 Chọn ảnh QR từ máy</button>
-  <button class="lens-btn" onclick="openGoogleLens()">🔍 Dùng Google Lens quét QR</button>
+  <button class="lens-btn" onclick="openGoogleLens()">🔍 Dùng Google Lens</button>
   <button class="paste-btn" onclick="pasteAndProcess()">📋 Dán & Xử lý QR</button>
 
   <div id="result" class="result">
@@ -53,39 +102,39 @@
     let html5QrCode = null;
     let currentInfo = null;
     const statusEl = document.getElementById('status');
-    const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyuz827ypxj95F8-F6NNGbR_8F_ZuzIvhsuhQ-48eqxxGKi9ebdjiknuLgn1e0RkR9a/exec";  
-    // ← Thay YOUR_WEB_APP_URL bằng URL backend của bạn
+    
+    // ==================== URL BACKEND CỦA BẠN ====================
+    const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyuz827ypxj95F8-F6NNGbR_8F_ZuzIvhsuhQ-48eqxxGKi9ebdjiknuLgn1e0RkR9a/exec";
 
-    // ==================== CHỌN CAMERA ====================
+    // Tải danh sách camera
     async function loadCameras() {
       const select = document.getElementById('cameraSelect');
-      select.innerHTML = '<option value="">Đang tải danh sách camera...</option>';
+      select.innerHTML = '<option value="">Đang tải camera...</option>';
       try {
         const cameras = await Html5Qrcode.getCameras();
         select.innerHTML = '';
-        cameras.forEach((camera, index) => {
+        cameras.forEach(camera => {
           const option = document.createElement('option');
           option.value = camera.id;
           option.textContent = camera.label || (camera.facingMode === 'environment' ? '📸 Camera sau' : '📸 Camera trước');
           select.appendChild(option);
         });
-        if (cameras.length === 0) select.innerHTML = '<option value="">Không tìm thấy camera</option>';
       } catch (err) {
-        select.innerHTML = '<option value="">Không thể lấy danh sách camera</option>';
+        select.innerHTML = '<option value="">Không tìm thấy camera</option>';
       }
     }
 
-    // Camera
+    // Camera functions
     document.getElementById('cameraBtn').addEventListener('click', startCamera);
     document.getElementById('stopBtn').addEventListener('click', stopCamera);
 
     async function startCamera() {
-      statusEl.textContent = 'Đang mở camera...';
       const selectedId = document.getElementById('cameraSelect').value;
       if (!selectedId) {
         statusEl.textContent = '⚠️ Vui lòng chọn camera trước!';
         return;
       }
+      statusEl.textContent = 'Đang mở camera...';
       if (html5QrCode) await stopCamera();
 
       html5QrCode = new Html5Qrcode("reader");
@@ -95,8 +144,7 @@
         document.getElementById('stopBtn').style.display = 'inline-block';
         statusEl.textContent = 'Camera đang chạy. Đặt thẻ CCCD vào khung.';
       } catch (err) {
-        console.error(err);
-        statusEl.textContent = '❌ Không mở được camera. Hãy thử chọn camera khác hoặc dùng chọn ảnh.';
+        statusEl.textContent = '❌ Không mở được camera. Hãy thử chọn camera khác.';
       }
     }
 
@@ -115,7 +163,7 @@
       processQR(decodedText);
     }
 
-    // Chọn ảnh (giữ nguyên)
+    // Chọn ảnh
     document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput').addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -130,11 +178,16 @@
       }
     });
 
-    // Google Lens & Dán & Xử lý
+    // Google Lens
     function openGoogleLens() {
-      statusEl.innerHTML = `🔍 <strong>Hướng dẫn Google Lens:</strong><br>1. Mở app Google<br>2. Nhấn Lens → quét QR<br>3. Copy chuỗi text<br>4. Nhấn "Dán & Xử lý QR"`;
+      statusEl.innerHTML = `🔍 <strong>Hướng dẫn:</strong><br>
+      1. Mở app Google trên iPhone<br>
+      2. Nhấn Lens → quét QR trên thẻ CCCD<br>
+      3. Copy chuỗi text<br>
+      4. Nhấn nút "Dán & Xử lý QR"`;
     }
 
+    // Dán & Xử lý
     async function pasteAndProcess() {
       statusEl.textContent = '⏳ Đang dán từ clipboard...';
       try {
@@ -145,6 +198,7 @@
       }
     }
 
+    // Xử lý QR
     function processQR(decodedText) {
       const fields = decodedText.trim().split('|').map(s => s.trim());
       currentInfo = {
@@ -170,95 +224,58 @@
       statusEl.innerHTML = '<span style="color:#34a853">✅ Đã xử lý thành công!</span>';
     }
 
-    // ==================== LƯU VÀO GOOGLE SHEET ====================
-// LƯU VÀO GOOGLE SHEET
-document.getElementById('saveBtn').addEventListener('click', async () => {
-  if (!currentInfo) return;
-  
-  const statusEl = document.getElementById('status');
-  statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
+    // ==================== LƯU VÀO GOOGLE SHEET (ĐÃ TỐI ƯU) ====================
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      if (!currentInfo) return;
+      statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
 
-  try {
-    const response = await fetch(BACKEND_URL, {
-      method: 'POST',
-      body: JSON.stringify(currentInfo),
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'   // Quan trọng để tránh preflight
+      try {
+        const response = await fetch(BACKEND_URL, {
+          method: 'POST',
+          body: JSON.stringify(currentInfo),
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          }
+        });
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { status: "unknown" };
+        }
+
+        if (response.ok && (result.status === "success" || response.status === 200)) {
+          statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
+          showResetButton();
+        } else {
+          statusEl.innerHTML = `⚠️ Dữ liệu có thể đã lưu.<br>
+            <small>Backend trả về: ${result.status || 'OK'}</small>`;
+          showResetButton();
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        statusEl.innerHTML = `⚠️ Có lỗi kết nối, nhưng dữ liệu có thể đã được lưu.<br>
+          <small>Kiểm tra Google Sheet của bạn.</small>`;
+        showResetButton();
       }
     });
 
-    // Đọc response dù có lỗi HTTP
-    let result;
-    try {
-      result = await response.json();
-    } catch (e) {
-      result = { status: "unknown" };
-    }
-
-    if (response.ok && result.status === "success") {
-      statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
-      showResetButton();
-    } else {
-      statusEl.innerHTML = `⚠️ Dữ liệu đã lưu nhưng web báo lỗi.<br>
-        <small>Backend trả về: ${result.status || 'OK'}</small>`;
-      showResetButton();   // Vẫn cho phép quét tiếp
-    }
-  } catch (err) {
-    console.error("Fetch error:", err);
-    statusEl.innerHTML = `❌ Có lỗi kết nối.<br>
-      <small>Nhưng dữ liệu có thể đã được lưu.<br>
-      Kiểm tra Google Sheet của bạn.</small>`;
-    showResetButton();
-  }
-});
-  if (!currentInfo) return;
-  statusEl.textContent = '⏳ Đang lưu vào Google Sheet...';
-
-  try {
-    const response = await fetch(BACKEND_URL, {
-      method: 'POST',
-      body: JSON.stringify(currentInfo),
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'   // ← Dòng này rất quan trọng để bypass preflight
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.status === "success") {
-      statusEl.innerHTML = '<span style="color:#34a853">✅ Đã lưu thành công vào Google Sheet!</span>';
-      showResetButton();
-    } else {
-      statusEl.textContent = '❌ Backend trả lỗi: ' + (result.message || 'Unknown error');
-    }
-  } catch (err) {
-    console.error("Lỗi fetch:", err);
-    statusEl.innerHTML = `❌ Không kết nối được với Google Sheet.<br>
-      <small>1. Đảm bảo đã Deploy lại backend với code mới<br>
-      2. Kiểm tra BACKEND_URL có đúng không</small>`;
-  }
-});
-    // ==================== NÚT QUAY VỀ TRANG BAN ĐẦU ====================
+    // Nút quay về quét lần sau
     function showResetButton() {
       const resetHTML = `<button class="reset-btn" onclick="resetPage()">🔄 Quét lần tiếp theo</button>`;
-      const status = document.getElementById('status');
-      status.innerHTML += resetHTML;
+      statusEl.innerHTML += resetHTML;
     }
 
     function resetPage() {
       document.getElementById('result').style.display = 'none';
       document.getElementById('saveBtn').style.display = 'none';
       currentInfo = null;
-      statusEl.textContent = 'Trang đã sẵn sàng quét lần mới!';
-      // Tải lại danh sách camera
+      statusEl.textContent = 'Sẵn sàng quét lần mới!';
       loadCameras();
     }
 
-    // Tải danh sách camera khi mở trang
+    // Khởi tạo khi load trang
     window.onload = loadCameras;
   </script>
 </body>
