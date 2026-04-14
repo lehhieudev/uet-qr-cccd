@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env/
+
+# VSCode
+.vscode/
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+venv/
+__pycache__/
