@@ -16,3 +16,7 @@ venv/
 *.log
 venv/
 __pycache__/
+
+
+dist/
+*.exe
