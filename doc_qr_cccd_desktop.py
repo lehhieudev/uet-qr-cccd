@@ -13,11 +13,20 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
 from pyzbar.pyzbar import decode as zbar_decode
 
+
+
+def resource_path(relative_path):
+    import sys, os
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 # ================= ENGINE XỬ LÝ QR =================
 class CCCDScannerEngine:
+    
     def __init__(self):
         self.use_wechat = False
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        #base_path = os.path.dirname(os.path.abspath(__file__))
+        base_path = resource_path("")
         model_dir = os.path.join(base_path, "models")
         
         files = [
@@ -178,7 +187,7 @@ class BIDVScannerApp(QWidget):
             
             # Đẩy cập nhật lên màn hình và tạm dừng 2 giây để quan sát
             QApplication.processEvents()
-            time.sleep(0.5)  # Giảm thời gian chờ để tăng tốc quá trình
+            #time.sleep(0.5)  # Giảm thời gian chờ để tăng tốc quá trình
 
         # --- BƯỚC cuối: HIỆN LẠI DỮ LIỆU MỚI LÊN LƯỚI ---
         self.update_table()

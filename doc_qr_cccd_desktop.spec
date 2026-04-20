@@ -4,13 +4,13 @@
 a = Analysis(
     ['doc_qr_cccd_desktop.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('libs\\libzbar-64.dll', '.'), ('libs\\libiconv.dll', '.')],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['pyzbar', 'cv2'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['matplotlib', 'scipy', 'IPython'],
     noarchive=False,
     optimize=0,
 )
@@ -35,6 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='version.txt',
     icon=['qr_2.ico'],
 )
